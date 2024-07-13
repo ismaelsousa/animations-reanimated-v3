@@ -1,5 +1,13 @@
 import { View, Dimensions, Image } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const convertoToDegrees = (angle: number) => {
+  return angle * (180 / Math.PI);
+};
+
+const convertoToStyledSheetDegrees = (degrees: number) => {
+  return `${degrees}deg`;
+};
 
 export default function AnimatedStyleUpdateExample(props) {
   const [{ height, width }, setScreenSize] = useState<{
@@ -14,8 +22,15 @@ export default function AnimatedStyleUpdateExample(props) {
   });
 
   const screenDiagonal = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
-  const ratio = height / width;
-  console.log("🚀 ~ AnimatedStyleUpdateExample ~ ratio:", ratio);
+
+  const diagonalAngleInDegrees = useMemo(() => {
+    const angle = Math.atan(width / height); // Returns the arctangent of a number in radians.
+
+    return {
+      positive: convertoToStyledSheetDegrees(convertoToDegrees(angle)),
+      negative: convertoToStyledSheetDegrees(convertoToDegrees(-angle)),
+    };
+  }, [width, height]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener(
@@ -55,7 +70,7 @@ export default function AnimatedStyleUpdateExample(props) {
             position: "absolute",
             bottom: 0,
             right: 0,
-            transform: [{ rotate: "-24deg" }],
+            transform: [{ rotate: diagonalAngleInDegrees.negative }],
             transformOrigin: "bottom right",
             overflow: "hidden",
             borderColor: "white",
@@ -70,7 +85,7 @@ export default function AnimatedStyleUpdateExample(props) {
             style={{
               height: screenDiagonal,
               width,
-              transform: [{ rotate: "24deg" }],
+              transform: [{ rotate: diagonalAngleInDegrees.positive }],
               transformOrigin: "bottom right",
             }}
           />
@@ -95,7 +110,7 @@ export default function AnimatedStyleUpdateExample(props) {
             position: "absolute",
             top: 0,
             left: 0,
-            transform: [{ rotate: "-24deg" }],
+            transform: [{ rotate: diagonalAngleInDegrees.negative }],
             transformOrigin: "top left",
             borderColor: "white",
             borderLeftWidth: 5,
@@ -110,7 +125,7 @@ export default function AnimatedStyleUpdateExample(props) {
             style={{
               height: screenDiagonal,
               width,
-              transform: [{ rotate: "24deg" }],
+              transform: [{ rotate: diagonalAngleInDegrees.positive }],
               transformOrigin: "top left",
             }}
           />
