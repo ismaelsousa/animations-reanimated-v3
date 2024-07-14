@@ -197,7 +197,7 @@ export default function AnimatedStyleUpdateExample(props) {
     secondCardOpacity.value = withTiming(
       1,
       {
-        duration: 500,
+        duration: 600,
         easing: Easing.bounce,
         reduceMotion: ReduceMotion.System,
       },
