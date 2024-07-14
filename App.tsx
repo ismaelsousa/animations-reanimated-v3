@@ -1,14 +1,10 @@
-import {
-  View,
-  Dimensions,
-  Image,
-  Button,
-  TouchableOpacity,
-} from "react-native";
+import { View, Dimensions, TouchableOpacity, Text } from "react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Animated, {
+  cancelAnimation,
   Easing,
   ReduceMotion,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -18,10 +14,6 @@ import Animated, {
 
 const convertoToDegrees = (angle: number) => {
   return angle * (180 / Math.PI);
-};
-
-const convertoToStyledSheetDegrees = (degrees: number) => {
-  return `${degrees}deg`;
 };
 
 /**
@@ -55,6 +47,8 @@ export default function AnimatedStyleUpdateExample(props) {
       negative: convertoToDegrees(-angle),
     };
   }, [width, height]);
+
+  const [showResetButton, setShowResetButton] = useState<boolean>(false);
 
   const screenOpacity = useSharedValue(1);
 
@@ -96,19 +90,23 @@ export default function AnimatedStyleUpdateExample(props) {
     };
   }, []);
 
-  const resetAnimations = () => {
-    console.log("🚀 ~ resetAnimations ~ resetAnimations");
+  const resetButtonTimeoutCallback = useCallback(() => {
+    setTimeout(() => {
+      setShowResetButton(true);
+    }, 3000);
+  }, []);
 
+  const runAnimations = useCallback(() => {
+    setShowResetButton(false);
+
+    // reset all the values
     screenOpacity.value = 1;
     borderWidth.value = 0;
     secondCardOpacity.value = 0;
     firstCardTranslateX.value = width * -1;
     animatedDiagonalPositiveAngle.value = 0;
     animatedDiagonalNegativeAngle.value = 0;
-    runAnimations();
-  };
 
-  const runAnimations = useCallback(() => {
     secondCardOpacity.value = withTiming(
       1,
       {
@@ -143,6 +141,12 @@ export default function AnimatedStyleUpdateExample(props) {
                   reduceMotion: ReduceMotion.System,
                 },
                 () => {
+                  const invokeResetButtonTimeoutCallback = () => {
+                    return () => {
+                      runOnJS(resetButtonTimeoutCallback)();
+                    };
+                  };
+
                   borderWidth.value = withSequence(
                     withTiming(10, {
                       easing: Easing.bounce,
@@ -171,10 +175,14 @@ export default function AnimatedStyleUpdateExample(props) {
                         );
                       }
                     ),
-                    withTiming(2.5, {
-                      easing: Easing.bounce,
-                      reduceMotion: ReduceMotion.System,
-                    })
+                    withTiming(
+                      2.5,
+                      {
+                        easing: Easing.bounce,
+                        reduceMotion: ReduceMotion.System,
+                      },
+                      invokeResetButtonTimeoutCallback()
+                    )
                   );
                 }
               );
@@ -183,44 +191,44 @@ export default function AnimatedStyleUpdateExample(props) {
         );
       }
     );
-  }, []);
+  }, [
+    diagonalAngleInDegrees,
+    resetButtonTimeoutCallback,
+    width,
+    height,
+    runOnJS,
+    withDelay,
+    withSequence,
+    withTiming,
+  ]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener(
       "change",
       ({ screen: { height, width } }) => {
         setScreenSize({ height, width });
+
+        cancelAnimation(screenOpacity);
+        cancelAnimation(borderWidth);
+        cancelAnimation(secondCardOpacity);
+        cancelAnimation(firstCardTranslateX);
+        cancelAnimation(animatedDiagonalPositiveAngle);
+        cancelAnimation(animatedDiagonalNegativeAngle);
       }
     );
     return () => subscription?.remove();
-  }, []);
+  }, [setScreenSize]);
 
   useEffect(() => {
     runAnimations();
   }, [runAnimations]);
 
   return (
-    <View style={{ flex: 1 }}>
-      {/**
-       * Button
-       */}
-      <View
-        style={[
-          {
-            width,
-            position: "absolute",
-            zIndex: 100,
-            bottom: 0,
-            paddingHorizontal: 20,
-          },
-        ]}
-      >
-        <Button onPress={resetAnimations} title="RESET"></Button>
-      </View>
-
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
       <Animated.View
         style={{
-          flex: 1,
+          height,
+          width,
           justifyContent: "center",
           alignItems: "center",
           backgroundColor: "black",
@@ -228,10 +236,24 @@ export default function AnimatedStyleUpdateExample(props) {
           // transform: [{ scale: 0.5 }],
         }}
       >
-        {/**
-         * Button
-         */}
-
+        {showResetButton && (
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              backgroundColor: "white",
+              padding: 10,
+              zIndex: 10,
+              borderRadius: 30,
+              width: 60,
+              height: 60,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onPress={runAnimations}
+          >
+            <Text>Reset</Text>
+          </TouchableOpacity>
+        )}
         <Animated.View // Card 1 Container
           style={[
             {
