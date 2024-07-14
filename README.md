@@ -1,3 +1,4 @@
+
 # Reanimated example
 
 <p>
@@ -18,3 +19,25 @@
 ## 📝 Notes
 
 - [`react-native-reanimated` docs](https://docs.swmansion.com/react-native-reanimated/)
+
+## Implementation
+
+<img src='https://github.com/user-attachments/assets/35e6aa0d-9422-44a0-ab25-17f9fbe0395f' width='500px' />
+
+
+
+## IOS
+
+https://github.com/user-attachments/assets/023c7da3-f624-42e9-9769-7f15dd094bc0
+
+
+
+https://github.com/user-attachments/assets/0198ffe6-812e-4156-ae43-ee87aff09d38
+
+
+
+
+## Android
+
+https://github.com/user-attachments/assets/4950a2cc-4b29-4064-80cf-8a74093d0956
+
