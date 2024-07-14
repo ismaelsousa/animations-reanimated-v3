@@ -3,14 +3,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Animated, {
   cancelAnimation,
   Easing,
+  Extrapolation,
+  interpolate,
   ReduceMotion,
   runOnJS,
+  SensorType,
+  useAnimatedSensor,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 
 const convertoToDegrees = (angle: number) => {
   return angle * (180 / Math.PI);
@@ -40,7 +47,7 @@ export default function AnimatedStyleUpdateExample(props) {
   const screenDiagonal = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
 
   const diagonalAngleInDegrees = useMemo(() => {
-    const angle = Math.atan(width / height); // divide it by 180; // Returns the arctangent of a number in radians.
+    const angle = Math.atan(width / height); // Returns the arctangent of a number in radians.
 
     return {
       positive: convertoToDegrees(angle),
@@ -50,13 +57,55 @@ export default function AnimatedStyleUpdateExample(props) {
 
   const [showResetButton, setShowResetButton] = useState<boolean>(false);
 
-  const screenOpacity = useSharedValue(1);
+  const gyroscope = useAnimatedSensor(SensorType.ACCELEROMETER, {
+    interval: 100,
+  });
 
+  const values = useDerivedValue(() => {
+    const { x, y, z } = gyroscope.sensor.value;
+
+    const rollAngle = x * (180 / Math.PI);
+    const pitchAngle = y * (180 / Math.PI);
+    const yawAngle = z * (180 / Math.PI);
+
+    return { roll: rollAngle, pitch: pitchAngle, yaw: yawAngle };
+  });
+
+  const cardScale = useSharedValue(1);
+  const screenOpacity = useSharedValue(1);
   const borderWidth = useSharedValue(0);
   const secondCardOpacity = useSharedValue(0);
   const firstCardTranslateX = useSharedValue(width * -1);
   const animatedDiagonalPositiveAngle = useSharedValue(0);
   const animatedDiagonalNegativeAngle = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          rotateX: withSpring(
+            `${interpolate(
+              values.value.pitch,
+              [-90, 90],
+              [-20, 20],
+              Extrapolation.CLAMP
+            )}deg`
+          ),
+        },
+        {
+          rotateY: withSpring(
+            `${interpolate(
+              values.value.roll,
+              [-90, 90],
+              [-20, 20],
+              Extrapolation.CLAMP
+            )}deg`
+          ),
+        },
+        // { scale: cardScale.value },
+      ],
+    };
+  }, []);
 
   const firstCardContainerStyle = useAnimatedStyle(() => {
     return {
@@ -137,7 +186,17 @@ export default function AnimatedStyleUpdateExample(props) {
         },
         animateScreenOpacity()
       ),
-      withTiming(2.5, config, invokeResetButtonTimeoutCallback())
+      withTiming(2.5, config, () => {
+        cardScale.value = withTiming(
+          0.8,
+          {
+            duration: 1000,
+            easing: Easing.linear,
+            reduceMotion: ReduceMotion.System,
+          },
+          invokeResetButtonTimeoutCallback()
+        );
+      })
     );
   };
 
@@ -187,6 +246,7 @@ export default function AnimatedStyleUpdateExample(props) {
     setShowResetButton(false);
 
     // reset all the values
+    cardScale.value = 1;
     screenOpacity.value = 1;
     borderWidth.value = 0;
     secondCardOpacity.value = 0;
@@ -236,18 +296,45 @@ export default function AnimatedStyleUpdateExample(props) {
   }, [runAnimations]);
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "black",
+      }}
+    >
+      <StatusBar translucent />
       <Animated.View
-        style={{
-          height,
-          width,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "black",
-          opacity: screenOpacity,
-          // transform: [{ scale: 0.5 }],
-        }}
+        style={[
+          {
+            height,
+            width,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "black",
+            opacity: screenOpacity,
+            overflow: "hidden",
+            borderRadius: 20,
+          },
+          animatedStyle,
+        ]}
       >
+        <Animated.View // Border
+          style={[
+            {
+              zIndex: 2,
+              height: screenDiagonal,
+              width: borderWidth,
+              position: "absolute",
+              transformOrigin: "center",
+              overflow: "hidden",
+              backgroundColor: "white",
+            },
+            diagonalNegativeStyle,
+          ]}
+        />
+
         {showResetButton && (
           <TouchableOpacity
             style={{
@@ -273,32 +360,10 @@ export default function AnimatedStyleUpdateExample(props) {
               position: "absolute",
               height,
               width,
-              overflow: "hidden",
             },
             firstCardContainerStyle,
           ]}
         >
-          <Animated.View // Border
-            style={[
-              {
-                zIndex: 2,
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                height: screenDiagonal,
-                width,
-                position: "absolute",
-                bottom: 0,
-                right: 0,
-                transformOrigin: "bottom right",
-                overflow: "hidden",
-                borderColor: "white",
-                borderRightWidth: borderWidth,
-                // backgroundColor: "blue",
-                // opacity: 0.5,
-              },
-              diagonalNegativeStyle,
-            ]}
-          />
           <Animated.View
             style={[
               {
@@ -311,10 +376,6 @@ export default function AnimatedStyleUpdateExample(props) {
                 right: 0,
                 transformOrigin: "bottom right",
                 overflow: "hidden",
-                // borderColor: "white",
-                // borderRightWidth: 5,
-                // backgroundColor: "blue",
-                // opacity: 0.5,
               },
               diagonalNegativeStyle,
             ]}
@@ -334,6 +395,19 @@ export default function AnimatedStyleUpdateExample(props) {
           </Animated.View>
         </Animated.View>
 
+        <Animated.View
+          style={[
+            {
+              alignItems: "center",
+              justifyContent: "center",
+              width: 100,
+              height: 100,
+              backgroundColor: "red",
+              zIndex: 1000,
+            },
+            animatedStyle,
+          ]}
+        />
         {/**
          * Card 2
          */}
@@ -348,24 +422,6 @@ export default function AnimatedStyleUpdateExample(props) {
             secondCardContainerStyle,
           ]}
         >
-          <Animated.View // Border
-            style={[
-              {
-                zIndex: 2,
-                height: screenDiagonal,
-                width,
-                position: "absolute",
-                top: 0,
-                left: 0,
-                transformOrigin: "top left",
-                borderColor: "white",
-                borderLeftWidth: borderWidth,
-                overflow: "hidden",
-                // backgroundColor: "blue",
-              },
-              diagonalNegativeStyle,
-            ]}
-          />
           <Animated.View
             style={[
               {
@@ -375,11 +431,7 @@ export default function AnimatedStyleUpdateExample(props) {
                 top: 0,
                 left: 0,
                 transformOrigin: "top left",
-                // borderColor: "white",
-                // borderLeftWidth: 5,
                 overflow: "hidden",
-                // backgroundColor: "blue",
-                // opacity: 0.5,
               },
               diagonalNegativeStyle,
             ]}
