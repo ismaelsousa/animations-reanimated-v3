@@ -96,6 +96,93 @@ export default function AnimatedStyleUpdateExample(props) {
     }, 3000);
   }, []);
 
+  const invokeResetButtonTimeoutCallback = () => {
+    "worklet";
+    return () => {
+      runOnJS(resetButtonTimeoutCallback)();
+    };
+  };
+
+  const animateScreenOpacity = () => {
+    "worklet";
+    return () => {
+      screenOpacity.value = withSequence(
+        withTiming(0, {
+          duration: 500,
+          easing: Easing.inOut(Easing.linear),
+        }),
+        withTiming(1, {
+          duration: 500,
+          easing: Easing.inOut(Easing.linear),
+        })
+      );
+    };
+  };
+
+  const animateOpacityAndBorder = () => {
+    "worklet";
+    const config = {
+      easing: Easing.bounce,
+      reduceMotion: ReduceMotion.System,
+    };
+
+    borderWidth.value = withSequence(
+      withTiming(10, config),
+      withTiming(0, config),
+      withTiming(
+        height,
+        {
+          ...config,
+          easing: Easing.elastic(5),
+        },
+        animateScreenOpacity()
+      ),
+      withTiming(2.5, config, invokeResetButtonTimeoutCallback())
+    );
+  };
+
+  const degreeAnimation = () => {
+    "worklet";
+    animatedDiagonalPositiveAngle.value = withDelay(
+      500,
+      withTiming(
+        diagonalAngleInDegrees.positive,
+        {
+          duration: 500,
+          easing: Easing.bounce,
+          reduceMotion: ReduceMotion.System,
+        },
+        animateOpacityAndBorder
+      )
+    );
+
+    animatedDiagonalNegativeAngle.value = withDelay(
+      500,
+      withTiming(diagonalAngleInDegrees.negative, {
+        duration: 500,
+        easing: Easing.bounce,
+        reduceMotion: ReduceMotion.System,
+      })
+    );
+  };
+
+  const applyAnimations = () => {
+    "worklet";
+
+    firstCardTranslateX.value = withDelay(
+      1000,
+      withTiming(
+        0,
+        {
+          duration: 500,
+          easing: Easing.inOut(Easing.circle),
+          reduceMotion: ReduceMotion.System,
+        },
+        degreeAnimation
+      )
+    );
+  };
+
   const runAnimations = useCallback(() => {
     setShowResetButton(false);
 
@@ -114,82 +201,7 @@ export default function AnimatedStyleUpdateExample(props) {
         easing: Easing.bounce,
         reduceMotion: ReduceMotion.System,
       },
-      () => {
-        firstCardTranslateX.value = withDelay(
-          700,
-          withTiming(
-            0,
-            {
-              duration: 500,
-              easing: Easing.inOut(Easing.circle),
-              reduceMotion: ReduceMotion.System,
-            },
-            () => {
-              animatedDiagonalPositiveAngle.value = withTiming(
-                diagonalAngleInDegrees.positive,
-                {
-                  duration: 500,
-                  easing: Easing.bounce,
-                  reduceMotion: ReduceMotion.System,
-                }
-              );
-              animatedDiagonalNegativeAngle.value = withTiming(
-                diagonalAngleInDegrees.negative,
-                {
-                  duration: 500,
-                  easing: Easing.bounce,
-                  reduceMotion: ReduceMotion.System,
-                },
-                () => {
-                  const invokeResetButtonTimeoutCallback = () => {
-                    return () => {
-                      runOnJS(resetButtonTimeoutCallback)();
-                    };
-                  };
-
-                  borderWidth.value = withSequence(
-                    withTiming(10, {
-                      easing: Easing.bounce,
-                      reduceMotion: ReduceMotion.System,
-                    }),
-                    withTiming(0, {
-                      easing: Easing.bounce,
-                      reduceMotion: ReduceMotion.System,
-                    }),
-                    withTiming(
-                      height,
-                      {
-                        easing: Easing.elastic(5),
-                        reduceMotion: ReduceMotion.System,
-                      },
-                      () => {
-                        screenOpacity.value = withSequence(
-                          withTiming(0, {
-                            duration: 500,
-                            easing: Easing.inOut(Easing.linear),
-                          }),
-                          withTiming(1, {
-                            duration: 500,
-                            easing: Easing.inOut(Easing.linear),
-                          })
-                        );
-                      }
-                    ),
-                    withTiming(
-                      2.5,
-                      {
-                        easing: Easing.bounce,
-                        reduceMotion: ReduceMotion.System,
-                      },
-                      invokeResetButtonTimeoutCallback()
-                    )
-                  );
-                }
-              );
-            }
-          )
-        );
-      }
+      applyAnimations
     );
   }, [
     diagonalAngleInDegrees,
