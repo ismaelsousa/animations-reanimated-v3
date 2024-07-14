@@ -66,9 +66,8 @@ export default function AnimatedStyleUpdateExample(props) {
 
     const rollAngle = x * (180 / Math.PI);
     const pitchAngle = y * (180 / Math.PI);
-    const yawAngle = z * (180 / Math.PI);
 
-    return { roll: rollAngle, pitch: pitchAngle, yaw: yawAngle };
+    return { roll: rollAngle, pitch: pitchAngle };
   });
 
   const cardScale = useSharedValue(1);
@@ -102,7 +101,7 @@ export default function AnimatedStyleUpdateExample(props) {
             )}deg`
           ),
         },
-        // { scale: cardScale.value },
+        { scale: cardScale.value },
       ],
     };
   }, []);
@@ -353,6 +352,7 @@ export default function AnimatedStyleUpdateExample(props) {
             <Text>Reset</Text>
           </TouchableOpacity>
         )}
+
         <Animated.View // Card 1 Container
           style={[
             {
@@ -395,19 +395,6 @@ export default function AnimatedStyleUpdateExample(props) {
           </Animated.View>
         </Animated.View>
 
-        <Animated.View
-          style={[
-            {
-              alignItems: "center",
-              justifyContent: "center",
-              width: 100,
-              height: 100,
-              backgroundColor: "red",
-              zIndex: 1000,
-            },
-            animatedStyle,
-          ]}
-        />
         {/**
          * Card 2
          */}
